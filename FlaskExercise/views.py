@@ -32,7 +32,9 @@ def logout():
         session.clear()
         # TODO: Also logout from your tenant's web session
         #   And make sure to redirect from there back to the login page
-        pass
+        return redirect(Config.AUTHORITY + '/oauth2/v2.0/logout' +
+            '?post_logout_redirect_uri=' +
+            url_for('login', _external=True))
 
     return redirect(url_for('login'))
 
@@ -47,7 +49,8 @@ def authorized():
         cache = _load_cache()
         # TODO: Acquire a token by authorization code from an MSAL app
         #  And replace the error dictionary
-        result = {'error': 'Not Implemented', 'error_description': 'Function not implemented.'}
+        result = _build_msal_app(cache=cache).acquire_token_by_authorization_code(request.args['code'], scopes=Config.SCOPE, redirect_uri=url_for('authorized', _external=True, _scheme='https'))
+        # result = {'error': 'Not Implemented', 'error_description': 'Function not implemented.'}
         if 'error' in result:
             return render_template('auth_error.html', result=result)
         session['user'] = result.get('id_token_claims')
@@ -75,9 +78,9 @@ def _save_cache(cache):
 
 def _build_msal_app(cache=None, authority=None):
     # TODO: Create and return a Confidential Client Application from msal
-    return None
+        return msal.ConfidentialClientApplication(Config.CLIENT_ID, client_credential=Config.CLIENT_SECRET, authority=authority, token_cache=cache)
 
 
 def _build_auth_url(authority=None, scopes=None, state=None):
     # TODO: Get the authorization request URL from a built msal app, and return it
-    return None
+    return _build_msal_app(authority=authority).get_authorization_request_url(scopes=scopes, state=state, redirect_uri=url_for('authorized', _external=True, _scheme='https'))
